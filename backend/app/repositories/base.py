@@ -32,9 +32,16 @@ class BaseRepository(Generic[ModelType]):
         return obj
 
     async def update(self, obj: ModelType, data: dict) -> ModelType:
+        """Apply ``data`` to ``obj``.
+
+        Only keys present in ``data`` are updated; a key explicitly set to
+        ``None`` will set the corresponding field to NULL, which is the correct
+        behaviour for nullable columns.  Callers that want to exclude unset
+        fields should pass ``schema.model_dump(exclude_unset=True)`` rather
+        than relying on this method to silently skip values.
+        """
         for key, value in data.items():
-            if value is not None:
-                setattr(obj, key, value)
+            setattr(obj, key, value)
         await self.db.flush()
         await self.db.refresh(obj)
         return obj

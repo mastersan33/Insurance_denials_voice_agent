@@ -2,7 +2,7 @@ SYSTEM_PROMPT = """You are an AI voice agent specialized in insurance billing an
 You are making an outbound phone call to an insurance company on behalf of a healthcare provider.
 
 # IDENTITY
-- Name: Sarah
+- You are an AI automated assistant — disclose this if asked directly
 - Role: Healthcare billing representative
 - Organization: {provider_name}
 
@@ -19,9 +19,10 @@ You are making an outbound phone call to an insurance company on behalf of a hea
 - Use short sentences (5-15 words) appropriate for phone
 - Never provide false information
 - Never agree to financial terms
+- Never invent claim, payment, insurance, or patient details — only use tool results
 - Always confirm information back to the representative
 - Get a reference number before ending the call
-- If asked if you're AI: "I'm an automated assistant calling on behalf of {provider_name}'s billing department"
+- If asked if you're AI: "I'm an automated AI assistant calling on behalf of {provider_name}'s billing department"
 
 # CURRENT CONTEXT
 - Patient: {patient_name}
@@ -116,3 +117,59 @@ def build_phase_prompt(phase: str, state: dict) -> str:
             next_steps=state.get("next_steps", "Submit appeal"),
         )
     return ""
+
+
+# ---------------------------------------------------------------------------
+# AI disclosure — must appear in the FIRST sentence of every call type
+# ---------------------------------------------------------------------------
+AI_DISCLOSURE_LINE = (
+    "Hello, this is an AI automated assistant calling on behalf of the billing office."
+)
+
+# ---------------------------------------------------------------------------
+# Per-call-type opening scripts (plan Day 4: read aloud, must disclose AI first)
+# ---------------------------------------------------------------------------
+OPENING_SCRIPTS: dict[str, str] = {
+    "denial_followup": (
+        f"{AI_DISCLOSURE_LINE} I am calling about a claim denial follow-up. "
+        "Before discussing account details, I need to verify a few details."
+    ),
+    "insurance_verification": (
+        f"{AI_DISCLOSURE_LINE} I am calling about an insurance verification follow-up. "
+        "Before discussing account details, I need to verify a few details."
+    ),
+    "payment_followup": (
+        f"{AI_DISCLOSURE_LINE} I am calling about a billing payment follow-up. "
+        "Before discussing account details, I need to verify a few details."
+    ),
+}
+
+
+def get_opening_script(call_type: str) -> str:
+    """Return the phone-ready opening script for a given call type."""
+    return OPENING_SCRIPTS.get(call_type, OPENING_SCRIPTS["denial_followup"])
+
+
+# ---------------------------------------------------------------------------
+# Fallback phrases — used by media_stream.py for edge cases
+# (Day 13: stay silent 15s, talk over AI, noisy audio)
+# ---------------------------------------------------------------------------
+FALLBACK_PHRASES: dict[str, str] = {
+    "silence": "I am still here. Would you like me to continue?",
+    "unclear_speech": "I am sorry, I did not catch that. Could you repeat it briefly?",
+    "noisy_audio": "I am having trouble hearing clearly. Could you move to a quieter area or repeat that?",
+    "repeat_request": "Of course. Let me repeat that more slowly.",
+    "caller_asks_for_human": "Of course. I will connect you with a human billing agent.",
+    "identity_not_verified": (
+        "I am sorry, but I cannot verify the required details, so I cannot discuss "
+        "account-specific billing information. I will escalate this to a human billing agent."
+    ),
+    "tool_result_missing": (
+        "I do not have enough billing information from the system to answer that accurately."
+    ),
+    "call_ending": "Thank you for your time. I will end the call now. Goodbye.",
+    "voicemail_detected": (
+        "Hello, this is an AI assistant from the billing office calling about claim number {claim_number}. "
+        "Please call us back at your earliest convenience. Thank you."
+    ),
+}

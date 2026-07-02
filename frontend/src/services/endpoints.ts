@@ -13,6 +13,7 @@ export const callJobsApi = {
   update: (id: string, data: { status?: string; priority?: number }) =>
     api.patch(`/api/v1/call-jobs/${id}`, data),
   getPending: (limit?: number) => api.get('/api/v1/call-jobs/pending', { params: { limit } }),
+  trigger: (id: string) => api.post(`/api/v1/call-jobs/${id}/trigger`),
 };
 
 export const callsApi = {
@@ -22,6 +23,7 @@ export const callsApi = {
 
 export const transcriptsApi = {
   getBySession: (sessionId: string) => api.get(`/api/v1/transcripts/${sessionId}`),
+  listAll: (params?: { skip?: number; limit?: number }) => api.get('/api/v1/transcripts/list', { params }),
 };
 
 export const ticketsApi = {

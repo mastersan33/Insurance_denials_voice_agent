@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -47,6 +48,10 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
     elevenlabs_model_id: str = "eleven_turbo_v2_5"
+    elevenlabs_stt_model: str = "scribe_v1"
+    elevenlabs_tts_stability: float = 0.45
+    elevenlabs_tts_similarity_boost: float = 0.8
+    elevenlabs_tts_use_speaker_boost: bool = True
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
@@ -54,6 +59,18 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"
+
+    @model_validator(mode="after")
+    def _check_production_secrets(self) -> "Settings":
+        if self.environment == "production":
+            if self.secret_key == "change-me-in-production":
+                raise ValueError(
+                    "SECRET_KEY must be set to a strong random value in production. "
+                    "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                )
+            if len(self.secret_key) < 32:
+                raise ValueError("SECRET_KEY must be at least 32 characters in production.")
+        return self
 
     class Config:
         env_file = ".env"

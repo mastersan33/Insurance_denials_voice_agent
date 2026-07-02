@@ -30,7 +30,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    from backend.app.db.base import Base
+    """Import all models so SQLAlchemy's metadata is fully populated.
+
+    Schema creation and migrations are handled exclusively by Alembic
+    (``_run_migrations`` in main.py lifespan).  This function only ensures
+    all ORM model classes are imported before the app starts serving requests,
+    which is required for relationship loading and mapper configuration.
+    """
     from backend.app.models import (  # noqa: F401
         billing_case,
         call_event,
@@ -42,6 +48,3 @@ async def init_db() -> None:
         transcript,
         user,
     )
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
