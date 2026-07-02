@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -25,12 +27,12 @@ class CallJobResponse(BaseModel):
     priority: int
     max_attempts: int
     attempt_count: int
-    scheduled_at: str | None = None
-    completed_at: str | None = None
+    scheduled_at: datetime | None = None
+    completed_at: datetime | None = None
     outcome: str | None = None
     outcome_notes: str | None = None
-    created_at: str | None = None
-    updated_at: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True

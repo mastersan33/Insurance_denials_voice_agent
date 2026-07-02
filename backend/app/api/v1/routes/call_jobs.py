@@ -1,12 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
 from backend.app.db.session import get_db
 from backend.app.schemas.call_job import CallJobCreate, CallJobResponse, CallJobUpdate
+from backend.app.schemas.call_session import CallSessionResponse
 from backend.app.services.call_job_service import CallJobService
+from backend.app.services.call_session_service import CallSessionService
+from backend.app.twilio.client import twilio_client
 
 router = APIRouter()
 
@@ -62,3 +65,31 @@ async def update_call_job(
 ):
     service = CallJobService(db)
     return await service.update_job(job_id, data)
+
+
+@router.post("/{job_id}/trigger", response_model=CallSessionResponse, status_code=201)
+async def trigger_call(
+    job_id: str,
+    user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Trigger an outbound call for a pending call job."""
+    job_service = CallJobService(db)
+    session_service = CallSessionService(db)
+
+    job = await job_service.get_job(job_id)
+    if job.status not in ("pending", "failed"):
+        raise HTTPException(status_code=400, detail=f"Job status is '{job.status}', must be pending or failed to trigger.")
+
+    from backend.app.config.settings import settings
+    call_sid = await twilio_client.initiate_call(to_number=job.phone_number)
+
+    session = await session_service.create_session(
+        call_job_id=job_id,
+        from_number=settings.twilio_phone_number,
+        to_number=job.phone_number,
+    )
+    await session_service.update_status(session.id, "initiated", twilio_call_sid=call_sid)
+    await job_service.update_job(job_id, CallJobUpdate(status="in_progress"))
+
+    return CallSessionResponse.model_validate(session)

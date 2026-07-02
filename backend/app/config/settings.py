@@ -30,9 +30,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     algorithm: str = "HS256"
 
-    # OpenAI
+    # OpenAI / LLM
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
+    llm_provider: str = "openai"
+    llm_model: str = "gpt-4o-mini"
+    enable_real_llm: bool = True
 
     # Twilio
     twilio_account_sid: str = ""
