@@ -1,0 +1,39 @@
+import { api } from './api';
+
+export const dashboardApi = {
+  getStats: () => api.get('/api/v1/dashboard/stats'),
+};
+
+export const callJobsApi = {
+  list: (params?: { status?: string; skip?: number; limit?: number }) =>
+    api.get('/api/v1/call-jobs', { params }),
+  get: (id: string) => api.get(`/api/v1/call-jobs/${id}`),
+  create: (data: { billing_case_id: string; phone_number: string; priority?: number }) =>
+    api.post('/api/v1/call-jobs', data),
+  update: (id: string, data: { status?: string; priority?: number }) =>
+    api.patch(`/api/v1/call-jobs/${id}`, data),
+  getPending: (limit?: number) => api.get('/api/v1/call-jobs/pending', { params: { limit } }),
+};
+
+export const callsApi = {
+  getActive: () => api.get('/api/v1/calls/active'),
+  get: (id: string) => api.get(`/api/v1/calls/${id}`),
+};
+
+export const transcriptsApi = {
+  getBySession: (sessionId: string) => api.get(`/api/v1/transcripts/${sessionId}`),
+};
+
+export const ticketsApi = {
+  list: (params?: { status?: string }) => api.get('/api/v1/tickets', { params }),
+  create: (data: { title: string; description?: string; priority?: string }) =>
+    api.post('/api/v1/tickets', data),
+  update: (id: string, data: { status?: string; resolution?: string }) =>
+    api.patch(`/api/v1/tickets/${id}`, data),
+};
+
+export const billingCasesApi = {
+  list: (params?: { status?: string }) => api.get('/api/v1/billing-cases', { params }),
+  get: (id: string) => api.get(`/api/v1/billing-cases/${id}`),
+  create: (data: Record<string, unknown>) => api.post('/api/v1/billing-cases', data),
+};
