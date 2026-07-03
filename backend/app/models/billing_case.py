@@ -22,6 +22,7 @@ class BillingCase(Base, UUIDMixin, TimestampMixin):
     provider_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     provider_npi: Mapped[str | None] = mapped_column(String(20), nullable=True)
     status: Mapped[str] = mapped_column(String(50), default="open", index=True)
+    priority: Mapped[str] = mapped_column(String(20), default="normal", index=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     call_jobs = relationship("CallJob", back_populates="billing_case", lazy="selectin")

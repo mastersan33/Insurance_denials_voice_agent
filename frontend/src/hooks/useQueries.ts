@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { dashboardApi, callJobsApi, callsApi, transcriptsApi, billingCasesApi } from '../services/endpoints';
+import type { DashboardStats } from '../types/dashboard';
+import type { BillingCase, BillingCaseCreate, BillingCaseUpdate, PaginatedResponse } from '../types/billingCase';
 
 export interface NewCallPayload {
   patient_name: string;
@@ -14,9 +16,9 @@ export interface NewCallPayload {
 }
 
 export function useDashboardStats() {
-  return useQuery({
+  return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
-    queryFn: () => dashboardApi.getStats().then((r) => r.data),
+    queryFn: () => dashboardApi.getStats().then((r) => r.data as DashboardStats),
     refetchInterval: 15_000,
   });
 }
@@ -36,6 +38,17 @@ export function useTriggerCall() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['call-jobs'] });
       qc.invalidateQueries({ queryKey: ['active-calls'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+}
+
+export function useCancelCallJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) => callJobsApi.cancel(jobId).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['call-jobs'] });
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
   });
@@ -89,6 +102,76 @@ export function useTranscripts(sessionId: string) {
     queryFn: () => transcriptsApi.getBySession(sessionId).then((r) => r.data),
     enabled: !!sessionId,
     refetchInterval: 3_000,
+  });
+}
+
+// ── Billing Cases ───────────────────────────────────────────────
+
+export function useBillingCases(params: {
+  q?: string;
+  status?: string;
+  priority?: string;
+  skip?: number;
+  limit?: number;
+}) {
+  return useQuery<PaginatedResponse<BillingCase>>({
+    queryKey: ['billing-cases', params],
+    queryFn: () => billingCasesApi.list(params).then((r) => r.data as PaginatedResponse<BillingCase>),
+    staleTime: 10_000,
+  });
+}
+
+export function useBillingCase(id: string) {
+  return useQuery<BillingCase>({
+    queryKey: ['billing-case', id],
+    queryFn: () => billingCasesApi.get(id).then((r) => r.data as BillingCase),
+    enabled: !!id,
+  });
+}
+
+export function useCreateBillingCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: BillingCaseCreate) =>
+      billingCasesApi.create(data as unknown as Record<string, unknown>).then((r) => r.data as BillingCase),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['billing-cases'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+}
+
+export function useUpdateBillingCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: BillingCaseUpdate }) =>
+      billingCasesApi.update(id, data as Record<string, unknown>).then((r) => r.data as BillingCase),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['billing-cases'] });
+      qc.invalidateQueries({ queryKey: ['billing-case', id] });
+    },
+  });
+}
+
+export function useDeleteBillingCase() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => billingCasesApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['billing-cases'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
+  });
+}
+
+export function useBulkImportBillingCases() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => billingCasesApi.bulkImport(file).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['billing-cases'] });
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    },
   });
 }
 

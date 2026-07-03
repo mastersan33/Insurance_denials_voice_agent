@@ -7,6 +7,8 @@ from backend.app.models.transcript import Transcript
 from backend.app.models.ticket import Ticket
 from backend.app.models.human_handoff import HumanHandoff
 from backend.app.models.conversation_memory import ConversationMemory
+from backend.app.models.refresh_token import RefreshToken
+from backend.app.models.password_reset_token import PasswordResetToken
 
 __all__ = [
     "User",
@@ -18,4 +20,6 @@ __all__ = [
     "Ticket",
     "HumanHandoff",
     "ConversationMemory",
+    "RefreshToken",
+    "PasswordResetToken",
 ]

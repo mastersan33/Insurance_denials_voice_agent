@@ -1,6 +1,9 @@
 from datetime import datetime
+from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+T = TypeVar("T")
 
 
 class BillingCaseCreate(BaseModel):
@@ -18,7 +21,15 @@ class BillingCaseCreate(BaseModel):
     denial_reason: str | None = None
     provider_name: str | None = None
     provider_npi: str | None = None
+    priority: str = "normal"
     notes: str | None = None
+
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: str) -> str:
+        if v not in ("low", "normal", "high", "urgent"):
+            raise ValueError("priority must be low, normal, high, or urgent")
+        return v
 
 
 class BillingCaseUpdate(BaseModel):
@@ -29,7 +40,22 @@ class BillingCaseUpdate(BaseModel):
     denial_code: str | None = None
     denial_reason: str | None = None
     status: str | None = None
+    priority: str | None = None
     notes: str | None = None
+
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("low", "normal", "high", "urgent"):
+            raise ValueError("priority must be low, normal, high, or urgent")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str | None) -> str | None:
+        if v is not None and v not in ("open", "in_progress", "resolved", "closed", "appealing"):
+            raise ValueError("invalid status")
+        return v
 
 
 class BillingCaseResponse(BaseModel):
@@ -49,9 +75,17 @@ class BillingCaseResponse(BaseModel):
     provider_name: str | None = None
     provider_npi: str | None = None
     status: str
+    priority: str
     notes: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
     class Config:
         from_attributes = True
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    skip: int
+    limit: int

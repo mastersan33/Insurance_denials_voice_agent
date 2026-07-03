@@ -22,13 +22,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.config.settings import settings
 from backend.app.core.security import hash_password
 from backend.app.db.session import async_session_factory, engine
+from backend.app.db.base import Base
+import backend.app.models  # noqa: F401 — importing the package registers all models with SQLAlchemy Base
 from backend.app.models.billing_case import BillingCase
 from backend.app.models.user import User
-from backend.app.models import (  # noqa: F401 — register all models before create_all
-    billing_case, call_event, call_job, call_session,
-    conversation_memory, human_handoff, ticket, transcript, user,
-)
-from backend.app.db.base import Base
 
 
 # ---------------------------------------------------------------------------

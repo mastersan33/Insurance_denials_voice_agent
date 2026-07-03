@@ -1,56 +1,173 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, PhoneCall, Radio, FileText, Settings, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard, PhoneCall, Radio, FileText, Settings,
+  Ticket, Users, BarChart2, PhoneForwarded, Brain, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import { clsx } from 'clsx';
+import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/call-queue', label: 'Call Queue', icon: PhoneCall },
-  { path: '/live-calls', label: 'Live Calls', icon: Radio },
-  { path: '/transcripts/list', label: 'Transcripts', icon: FileText },
-  { path: '/settings', label: 'Settings', icon: Settings },
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ElementType;
+  badge?: number;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: 'Overview',
+    items: [
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      { path: '/billing-cases', label: 'Billing Cases', icon: FileText },
+      { path: '/call-queue', label: 'Call Queue', icon: PhoneCall },
+      { path: '/live-calls', label: 'Live Calls', icon: Radio },
+      { path: '/human-handoff', label: 'Human Handoff', icon: PhoneForwarded },
+    ],
+  },
+  {
+    title: 'Management',
+    items: [
+      { path: '/tickets', label: 'Tickets', icon: Ticket },
+      { path: '/analytics', label: 'Analytics', icon: BarChart2 },
+      { path: '/users', label: 'Users', icon: Users },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { path: '/ai-config', label: 'AI Config', icon: Brain },
+      { path: '/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
-  const logout = useAuthStore((s) => s.logout);
+  const { user } = useAuthStore();
+  const [collapsed, setCollapsed] = useState(false);
+
+  const initials = user?.full_name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) ?? '?';
 
   return (
-    <aside className="flex w-64 flex-col border-r border-gray-200 bg-white">
-      <div className="flex h-16 items-center px-6 border-b border-gray-200">
-        <PhoneCall className="h-6 w-6 text-indigo-600 mr-2" />
-        <span className="text-lg font-semibold text-gray-900">Voice Agent</span>
+    <aside
+      className={clsx(
+        'flex flex-col border-r border-border bg-card transition-all duration-200 flex-shrink-0',
+        collapsed ? 'w-16' : 'w-60'
+      )}
+    >
+      {/* Logo */}
+      <div className="flex h-14 items-center justify-between px-4 border-b border-border">
+        {!collapsed && (
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <PhoneCall className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-sm font-semibold text-foreground leading-none">
+              Voice Agent
+            </span>
+          </div>
+        )}
+        {collapsed && (
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary mx-auto">
+            <PhoneCall className="h-4 w-4 text-primary-foreground" />
+          </div>
+        )}
+        {!collapsed && (
+          <button
+            onClick={() => setCollapsed(true)}
+            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
       </div>
-      <nav className="flex-1 px-4 py-4 space-y-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={clsx(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          );
-        })}
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
+        {navGroups.map((group) => (
+          <div key={group.title}>
+            {!collapsed && (
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+                {group.title}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  item.path === '/'
+                    ? location.pathname === '/'
+                    : location.pathname.startsWith(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    title={collapsed ? item.label : undefined}
+                    className={clsx(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      collapsed && 'justify-center px-2',
+                      isActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && item.badge != null && item.badge > 0 && (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
-      <div className="border-t border-gray-200 p-4">
-        <button
-          onClick={logout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-        >
-          <LogOut className="h-5 w-5" />
-          Sign Out
-        </button>
+
+      {/* Footer */}
+      <div className="border-t border-border p-2">
+        {collapsed ? (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Expand"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        ) : (
+          <Link
+            to="/profile"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 hover:bg-accent transition-colors"
+          >
+            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-semibold text-primary">{initials}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">{user?.full_name}</p>
+              <p className="text-[10px] text-muted-foreground capitalize">{user?.role}</p>
+            </div>
+          </Link>
+        )}
       </div>
     </aside>
   );
 }
+

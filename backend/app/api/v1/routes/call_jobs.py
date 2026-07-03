@@ -9,6 +9,7 @@ from backend.app.schemas.call_job import CallJobCreate, CallJobResponse, CallJob
 from backend.app.schemas.call_session import CallSessionResponse
 from backend.app.services.call_job_service import CallJobService
 from backend.app.services.call_session_service import CallSessionService
+from backend.app.config.settings import settings
 from backend.app.twilio.client import twilio_client
 
 router = APIRouter()
@@ -81,7 +82,6 @@ async def trigger_call(
     if job.status not in ("pending", "failed"):
         raise HTTPException(status_code=400, detail=f"Job status is '{job.status}', must be pending or failed to trigger.")
 
-    from backend.app.config.settings import settings
     call_sid = await twilio_client.initiate_call(to_number=job.phone_number)
 
     session = await session_service.create_session(
@@ -93,3 +93,17 @@ async def trigger_call(
     await job_service.update_job(job_id, CallJobUpdate(status="in_progress"))
 
     return CallSessionResponse.model_validate(session)
+
+
+@router.post("/{job_id}/cancel", response_model=CallJobResponse)
+async def cancel_call_job(
+    job_id: str,
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Cancel a pending or failed call job."""
+    job_service = CallJobService(db)
+    job = await job_service.get_job(job_id)
+    if job.status not in ("pending", "failed", "scheduled"):
+        raise HTTPException(status_code=400, detail=f"Cannot cancel job with status '{job.status}'.")
+    return await job_service.update_job(job_id, CallJobUpdate(status="cancelled"))

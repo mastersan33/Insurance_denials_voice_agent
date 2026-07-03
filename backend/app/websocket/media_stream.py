@@ -17,7 +17,11 @@ from backend.app.db.session import async_session_factory as AsyncSessionLocal
 from backend.app.models.human_handoff import HumanHandoff
 from backend.app.models.ticket import Ticket
 from backend.app.models.transcript import Transcript
+from backend.app.repositories.billing_case_repository import BillingCaseRepository
+from backend.app.repositories.call_job_repository import CallJobRepository
 from backend.app.repositories.call_session_repository import CallSessionRepository
+from backend.app.repositories.human_handoff_repository import HumanHandoffRepository
+from backend.app.repositories.ticket_repository import TicketRepository
 from backend.app.repositories.transcript_repository import TranscriptRepository
 from backend.app.voice.audio_formats import is_silence_frame
 from backend.app.voice.text_chunker import split_text_into_tts_chunks
@@ -170,20 +174,22 @@ async def _create_handoff_record(call_session_id: str, reason: str, context_summ
     """Day 10 — persist human handoff request to DB and auto-create a ticket."""
     try:
         async with AsyncSessionLocal() as db:
+            handoff_repo = HumanHandoffRepository(db)
+            ticket_repo = TicketRepository(db)
             handoff = HumanHandoff(
                 call_session_id=call_session_id,
                 reason=reason,
                 context_summary=context_summary,
                 status="pending",
             )
-            db.add(handoff)
+            await handoff_repo.create(handoff)
             ticket = Ticket(
                 title=f"Human handoff requested — {reason[:80]}",
                 description=context_summary,
                 priority="high",
                 status="open",
             )
-            db.add(ticket)
+            await ticket_repo.create(ticket)
             await db.commit()
             logger.info("handoff_created", call_session_id=call_session_id)
     except Exception as e:
@@ -199,8 +205,6 @@ async def _load_billing_context(call_sid: str) -> tuple[str, dict | None]:
             if not session:
                 return "", None
             # Navigate to billing case via call_job
-            from backend.app.repositories.call_job_repository import CallJobRepository
-            from backend.app.repositories.billing_case_repository import BillingCaseRepository
             job_repo = CallJobRepository(db)
             job = await job_repo.get_by_id(session.call_job_id)
             if not job:

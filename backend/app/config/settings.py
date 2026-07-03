@@ -56,6 +56,17 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
+    # Frontend (used for email links)
+    frontend_url: str = "http://localhost:5173"
+
+    # SMTP (optional — if not set, reset emails are logged to console in dev)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    smtp_from_email: str = "noreply@billing-agent.local"
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"

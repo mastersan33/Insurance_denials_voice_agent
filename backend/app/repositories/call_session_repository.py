@@ -1,5 +1,6 @@
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.app.models.call_session import CallSession
 from backend.app.repositories.base import BaseRepository
@@ -36,3 +37,18 @@ class CallSessionRepository(BaseRepository[CallSession]):
             )
         )
         return result.scalar_one() or 0.0
+
+    async def get_recent_with_job(self, limit: int = 10) -> list[CallSession]:
+        """Return recent sessions joined with their call_job (and billing case)."""
+        result = await self.db.execute(
+            select(CallSession)
+            .options(
+                selectinload(CallSession.call_job).selectinload(
+                    # type: ignore[attr-defined]
+                    CallSession.call_job.property.mapper.class_.billing_case
+                )
+            )
+            .order_by(CallSession.created_at.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())

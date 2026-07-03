@@ -10,14 +10,16 @@ from agent.tools import AGENT_TOOLS
 from backend.app.config.settings import settings
 
 
-def create_llm() -> ChatOpenAI:
-    return ChatOpenAI(
-        model=agent_config.model,
-        temperature=agent_config.temperature,
-        max_tokens=agent_config.max_tokens,
-        api_key=settings.openai_api_key,
-        streaming=True,
-    )
+# Module-level singleton — one client shared across all turns / calls.
+# ChatOpenAI is thread/async-safe for concurrent ainvoke calls.
+_llm = ChatOpenAI(
+    model=agent_config.model,
+    temperature=agent_config.temperature,
+    max_tokens=agent_config.max_tokens,
+    api_key=settings.openai_api_key,
+    streaming=True,
+)
+_llm_with_tools = _llm.bind_tools(AGENT_TOOLS)
 
 
 async def planner_node(state: AgentState) -> dict:
@@ -53,9 +55,6 @@ async def planner_node(state: AgentState) -> dict:
 
 async def executor_node(state: AgentState) -> dict:
     """Generate AI response using LLM with tools."""
-    llm = create_llm()
-    llm_with_tools = llm.bind_tools(AGENT_TOOLS)
-
     phase = state.get("current_phase", "ivr_navigation")
     system_prompt = build_system_prompt(state)
     phase_prompt = build_phase_prompt(phase, state)
@@ -66,7 +65,7 @@ async def executor_node(state: AgentState) -> dict:
         *messages,
     ]
 
-    response = await llm_with_tools.ainvoke(full_messages)
+    response = await _llm_with_tools.ainvoke(full_messages)
 
     return {"messages": [response], "response_text": response.content or ""}
 
