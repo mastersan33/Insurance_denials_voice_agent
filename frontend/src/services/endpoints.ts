@@ -15,6 +15,11 @@ export const callJobsApi = {
   getPending: (limit?: number) => api.get('/api/v1/call-jobs/pending', { params: { limit } }),
   trigger: (id: string) => api.post(`/api/v1/call-jobs/${id}/trigger`),
   cancel: (id: string) => api.post(`/api/v1/call-jobs/${id}/cancel`),
+  // Queue management
+  pauseQueue: () => api.post('/api/v1/call-jobs/queue/pause'),
+  resumeQueue: () => api.post('/api/v1/call-jobs/queue/resume'),
+  cancelAll: () => api.post('/api/v1/call-jobs/queue/cancel-all'),
+  retryFailed: () => api.post('/api/v1/call-jobs/queue/retry-failed'),
 };
 
 export const callsApi = {
@@ -50,3 +55,33 @@ export const billingCasesApi = {
     });
   },
 };
+
+export const analyticsApi = {
+  summary: () => api.get('/api/v1/analytics/summary'),
+  callVolume: (days?: number) => api.get('/api/v1/analytics/call-volume', { params: { days } }),
+  outcomes: () => api.get('/api/v1/analytics/outcomes'),
+  avgDuration: (days?: number) => api.get('/api/v1/analytics/avg-duration', { params: { days } }),
+  resolutionTrend: (days?: number) => api.get('/api/v1/analytics/resolution-trend', { params: { days } }),
+  payers: () => api.get('/api/v1/analytics/payers'),
+  denialCodes: () => api.get('/api/v1/analytics/denial-codes'),
+};
+
+export const reportsApi = {
+  billingCases: (fmt: 'csv' | 'json' = 'csv') =>
+    api.get('/api/v1/reports/billing-cases', { params: { fmt }, responseType: 'blob' }),
+  calls: (fmt: 'csv' | 'json' = 'csv') =>
+    api.get('/api/v1/reports/calls', { params: { fmt }, responseType: 'blob' }),
+  transcripts: (sessionId?: string, fmt: 'csv' | 'json' = 'csv') =>
+    api.get('/api/v1/reports/transcripts', { params: { fmt, session_id: sessionId }, responseType: 'blob' }),
+};
+
+export const auditApi = {
+  list: (params?: { actor_id?: string; action?: string; resource_type?: string; skip?: number; limit?: number }) =>
+    api.get('/api/v1/audit', { params }),
+};
+
+export const healthApi = {
+  ready: () => api.get('/health/ready'),
+  system: () => api.get('/health/system'),
+};
+

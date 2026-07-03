@@ -1,12 +1,15 @@
 from fastapi import APIRouter
 
 from backend.app.api.v1.routes import (
+    analytics,
+    audit,
     auth,
     billing_cases,
     call_jobs,
     calls,
     dashboard,
     health,
+    reports,
     tickets,
     transcripts,
     twilio_webhooks,
@@ -23,3 +26,6 @@ api_router.include_router(calls.router, prefix="/calls", tags=["Calls"])
 api_router.include_router(transcripts.router, prefix="/transcripts", tags=["Transcripts"])
 api_router.include_router(tickets.router, prefix="/tickets", tags=["Tickets"])
 api_router.include_router(twilio_webhooks.router, prefix="/twilio", tags=["Twilio Webhooks"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
+api_router.include_router(audit.router, prefix="/audit", tags=["Audit"])
+api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])

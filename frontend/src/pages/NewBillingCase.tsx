@@ -61,8 +61,9 @@ export default function NewBillingCase() {
 
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     const amount = data.amount_billed_str ? parseFloat(data.amount_billed_str) : undefined;
+    const { amount_billed_str, ...rest } = data;
     const result = await createMutation.mutateAsync({
-      ...data,
+      ...rest,
       amount_billed: Number.isFinite(amount) ? amount : undefined,
     });
     navigate(`/billing-cases/${result.id}`);

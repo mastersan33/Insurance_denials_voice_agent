@@ -466,17 +466,32 @@ async def _run_pipeline(call_sid: str) -> None:
             logger.info("handoff_triggered", call_sid=call_sid)
             await clear_audio_stream(call_sid, ctx.stream_sid)
             await _speak(call_sid, clean_response)
+            # Save agent handoff response to transcript DB
+            if ctx.call_session_id and clean_response:
+                ctx.transcript_seq += 1
+                async with AsyncSessionLocal() as db:
+                    await _save_transcript(ctx.call_session_id, "agent", clean_response, ctx.transcript_seq, db)
+                    await db.commit()
             # Persist handoff + ticket
             summary = " | ".join(
                 f"{m['role']}: {m['content'][:80]}" for m in ctx.messages[-6:]
             )
             if ctx.call_session_id:
                 await _create_handoff_record(ctx.call_session_id, "Caller requested human agent", summary)
-                    await _update_session_outcome(
-                        ctx.call_session_id,
-                        CallOutcome.TRANSFERRED_TO_HUMAN.value,
-                        "Human handoff requested during call",
-                    )
+                await _update_session_outcome(
+                    ctx.call_session_id,
+                    CallOutcome.TRANSFERRED_TO_HUMAN.value,
+                    "Human handoff requested during call",
+                )
+        elif response:
+            # Normal conversation flow — speak and save agent response to DB
+            await clear_audio_stream(call_sid, ctx.stream_sid)
+            await _speak(call_sid, response)
+            if ctx.call_session_id:
+                ctx.transcript_seq += 1
+                async with AsyncSessionLocal() as db:
+                    await _save_transcript(ctx.call_session_id, "agent", response, ctx.transcript_seq, db)
+                    await db.commit()
     except Exception as e:
         logger.error("pipeline_error", call_sid=call_sid, error=str(e))
     finally:

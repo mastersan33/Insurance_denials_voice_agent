@@ -20,6 +20,7 @@ from backend.app.db.session import init_db
 from backend.app.middleware.logging_middleware import RequestLoggingMiddleware
 from backend.app.middleware.request_id import RequestIDMiddleware
 from backend.app.websocket.media_stream import router as ws_router
+from backend.app.websocket.dashboard_ws import router as dashboard_ws_router
 
 
 def _run_migrations() -> None:
@@ -102,3 +103,4 @@ app.add_middleware(RequestIDMiddleware)
 
 app.include_router(api_router)
 app.include_router(ws_router, prefix="/api/v1/twilio")
+app.include_router(dashboard_ws_router)

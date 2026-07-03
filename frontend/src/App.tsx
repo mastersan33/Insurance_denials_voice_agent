@@ -15,6 +15,10 @@ import Settings from './pages/Settings';
 import BillingCases from './pages/BillingCases';
 import BillingCaseDetail from './pages/BillingCaseDetail';
 import NewBillingCase from './pages/NewBillingCase';
+import Analytics from './pages/Analytics';
+import Reports from './pages/Reports';
+import SystemHealth from './pages/SystemHealth';
+import AuditLog from './pages/AuditLog';
 import { useAuthStore } from './store/authStore';
 import { useThemeStore } from './store/themeStore';
 
@@ -50,6 +54,10 @@ function App() {
         <Route path="/live-calls" element={<LiveCalls />} />
         <Route path="/calls/:id" element={<CallDetails />} />
         <Route path="/transcripts/:id" element={<TranscriptViewer />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/system-health" element={<SystemHealth />} />
+        <Route path="/audit-log" element={<AuditLog />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
       </Route>

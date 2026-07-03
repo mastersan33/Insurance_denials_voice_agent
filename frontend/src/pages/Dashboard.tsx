@@ -13,6 +13,7 @@ import StatsCard from '../components/StatsCard';
 import StatusBadge from '../components/StatusBadge';
 import { StatCardSkeleton, ChartSkeleton, Skeleton } from '../components/Skeleton';
 import { useDashboardStats } from '../hooks/useQueries';
+import { useDashboardWebSocket } from '../hooks/useWebSocket';
 import type { OutcomeBreakdown, RecentCallActivity } from '../types/dashboard';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,6 +30,9 @@ export default function Dashboard() {
   const { data: stats, isLoading, dataUpdatedAt, refetch, isFetching } = useDashboardStats();
   const navigate = useNavigate();
   const qc = useQueryClient();
+
+  // Real-time push from backend WebSocket — updates query cache directly
+  useDashboardWebSocket();
 
   const lastUpdated = useMemo(() => {
     if (!dataUpdatedAt) return null;

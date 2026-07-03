@@ -80,10 +80,9 @@ async def update_billing_case(
     return BillingCaseResponse.model_validate(case)
 
 
-@router.delete("/{case_id}", status_code=204)
+@router.delete("/{case_id}", status_code=204, dependencies=[require_role("supervisor")])
 async def delete_billing_case(
     case_id: str,
-    _: Annotated[None, Depends(require_role("supervisor"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     repo = BillingCaseRepository(db)

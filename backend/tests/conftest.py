@@ -40,6 +40,7 @@ async def _create_test_schema():
         ticket,
         transcript,
         user,
+        audit_log,
     )
     async with _test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

@@ -104,6 +104,55 @@ async def cancel_call_job(
     """Cancel a pending or failed call job."""
     job_service = CallJobService(db)
     job = await job_service.get_job(job_id)
-    if job.status not in ("pending", "failed", "scheduled"):
+    if job.status not in ("pending", "failed", "scheduled", "paused"):
         raise HTTPException(status_code=400, detail=f"Cannot cancel job with status '{job.status}'.")
     return await job_service.update_job(job_id, CallJobUpdate(status="cancelled"))
+
+
+@router.post("/queue/pause", response_model=dict)
+async def pause_queue(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Pause all pending jobs in the queue."""
+    service = CallJobService(db)
+    result = await service.pause_queue()
+    await db.commit()
+    return result
+
+
+@router.post("/queue/resume", response_model=dict)
+async def resume_queue(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Resume all paused jobs."""
+    service = CallJobService(db)
+    result = await service.resume_queue()
+    await db.commit()
+    return result
+
+
+@router.post("/queue/cancel-all", response_model=dict)
+async def cancel_all_queue(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Cancel all pending, paused, and scheduled jobs."""
+    service = CallJobService(db)
+    result = await service.cancel_queue()
+    await db.commit()
+    return result
+
+
+@router.post("/queue/retry-failed", response_model=dict)
+async def retry_failed_jobs(
+    _: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Requeue all retryable failed jobs."""
+    service = CallJobService(db)
+    result = await service.retry_failed()
+    await db.commit()
+    return result
+

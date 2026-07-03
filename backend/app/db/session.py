@@ -47,4 +47,5 @@ async def init_db() -> None:
         ticket,
         transcript,
         user,
+        audit_log,
     )

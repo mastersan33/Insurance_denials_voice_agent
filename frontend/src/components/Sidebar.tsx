@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, PhoneCall, Radio, FileText, Settings,
   Ticket, Users, BarChart2, PhoneForwarded, Brain, ChevronLeft, ChevronRight,
+  ClipboardList, Download, Activity, ShieldCheck,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useState } from 'react';
@@ -12,6 +13,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   badge?: number;
+  minRole?: 'viewer' | 'operator' | 'supervisor' | 'admin';
 }
 
 interface NavGroup {
@@ -36,18 +38,20 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: 'Management',
+    title: 'Insights',
     items: [
-      { path: '/tickets', label: 'Tickets', icon: Ticket },
       { path: '/analytics', label: 'Analytics', icon: BarChart2 },
-      { path: '/users', label: 'Users', icon: Users },
+      { path: '/reports', label: 'Reports', icon: Download },
+      { path: '/tickets', label: 'Tickets', icon: Ticket },
     ],
   },
   {
     title: 'System',
     items: [
-      { path: '/ai-config', label: 'AI Config', icon: Brain },
+      { path: '/system-health', label: 'System Health', icon: Activity },
+      { path: '/audit-log', label: 'Audit Log', icon: ShieldCheck, minRole: 'supervisor' as const },
       { path: '/settings', label: 'Settings', icon: Settings },
+      { path: '/profile', label: 'Profile', icon: Users },
     ],
   },
 ];
@@ -109,6 +113,11 @@ export default function Sidebar() {
             )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
+                if (item.minRole && !user) return null;
+                if (item.minRole) {
+                  const ROLE_LEVEL: Record<string, number> = { viewer: 0, operator: 1, supervisor: 2, admin: 3 };
+                  if ((ROLE_LEVEL[user!.role] ?? -1) < (ROLE_LEVEL[item.minRole] ?? 0)) return null;
+                }
                 const Icon = item.icon;
                 const isActive =
                   item.path === '/'

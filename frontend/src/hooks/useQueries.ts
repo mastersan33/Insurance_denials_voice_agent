@@ -182,3 +182,37 @@ export function useAllTranscripts() {
     refetchInterval: 10_000,
   });
 }
+
+// ── Queue management ────────────────────────────────────────────
+
+export function usePauseQueue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => callJobsApi.pauseQueue().then((r) => r.data as { paused: number }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['call-jobs'] }),
+  });
+}
+
+export function useResumeQueue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => callJobsApi.resumeQueue().then((r) => r.data as { resumed: number }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['call-jobs'] }),
+  });
+}
+
+export function useCancelAllQueue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => callJobsApi.cancelAll().then((r) => r.data as { cancelled: number }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['call-jobs'] }),
+  });
+}
+
+export function useRetryFailed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => callJobsApi.retryFailed().then((r) => r.data as { retried: number }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['call-jobs'] }),
+  });
+}

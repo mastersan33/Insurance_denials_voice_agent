@@ -1,3 +1,4 @@
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.exceptions import NotFoundException
@@ -8,6 +9,7 @@ from backend.app.schemas.call_job import CallJobCreate, CallJobResponse, CallJob
 
 class CallJobService:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = CallJobRepository(db)
 
     async def create_job(self, data: CallJobCreate, user_id: str) -> CallJobResponse:
@@ -44,3 +46,44 @@ class CallJobService:
     async def get_pending_jobs(self, limit: int = 10) -> list[CallJobResponse]:
         jobs = await self.repo.get_pending_jobs(limit)
         return [CallJobResponse.model_validate(j) for j in jobs]
+
+    async def pause_queue(self) -> dict:
+        """Mark all pending jobs as paused."""
+        result = await self.db.execute(
+            update(CallJob)
+            .where(CallJob.status == "pending")
+            .values(status="paused")
+            .execution_options(synchronize_session="fetch")
+        )
+        return {"paused": result.rowcount}
+
+    async def resume_queue(self) -> dict:
+        """Restore all paused jobs back to pending."""
+        result = await self.db.execute(
+            update(CallJob)
+            .where(CallJob.status == "paused")
+            .values(status="pending")
+            .execution_options(synchronize_session="fetch")
+        )
+        return {"resumed": result.rowcount}
+
+    async def cancel_queue(self) -> dict:
+        """Cancel all pending and paused jobs."""
+        result = await self.db.execute(
+            update(CallJob)
+            .where(CallJob.status.in_(["pending", "paused", "scheduled"]))
+            .values(status="cancelled")
+            .execution_options(synchronize_session="fetch")
+        )
+        return {"cancelled": result.rowcount}
+
+    async def retry_failed(self) -> dict:
+        """Reset all retryable failed jobs back to pending."""
+        result = await self.db.execute(
+            update(CallJob)
+            .where(CallJob.status == "failed", CallJob.attempt_count < CallJob.max_attempts)
+            .values(status="pending")
+            .execution_options(synchronize_session="fetch")
+        )
+        return {"retried": result.rowcount}
+

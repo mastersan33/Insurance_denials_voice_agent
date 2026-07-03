@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Plus, X, RefreshCw, Ban } from 'lucide-react';
+import { Phone, Plus, X, RefreshCw, Ban, Pause, Play, RotateCcw } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import { TableRowSkeleton } from '../components/Skeleton';
-import { useCallJobs, useTriggerCall, useCancelCallJob, useCreateAndCall, type NewCallPayload } from '../hooks/useQueries';
+import {
+  useCallJobs, useTriggerCall, useCancelCallJob, useCreateAndCall,
+  usePauseQueue, useResumeQueue, useCancelAllQueue, useRetryFailed,
+  type NewCallPayload,
+} from '../hooks/useQueries';
 import { formatDistanceToNow } from 'date-fns';
 
 const DENIAL_CODES = ['CO-97', 'CO-4', 'CO-16', 'CO-50', 'CO-22'];
@@ -53,6 +57,10 @@ export default function CallQueue() {
   const trigger = useTriggerCall();
   const cancelJob = useCancelCallJob();
   const createAndCall = useCreateAndCall();
+  const pauseQ = usePauseQueue();
+  const resumeQ = useResumeQueue();
+  const cancelAllQ = useCancelAllQueue();
+  const retryQ = useRetryFailed();
 
   const allJobs: Job[] = Array.isArray(jobs) ? jobs as Job[] : [];
 
@@ -112,6 +120,30 @@ export default function CallQueue() {
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+          <button
+            onClick={() => { if (confirm('Pause all pending jobs?')) pauseQ.mutate(); }}
+            disabled={pauseQ.isPending}
+            title="Pause queue"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-warning hover:bg-accent disabled:opacity-50 transition-colors"
+          >
+            <Pause className="h-3.5 w-3.5" /> Pause
+          </button>
+          <button
+            onClick={() => resumeQ.mutate()}
+            disabled={resumeQ.isPending}
+            title="Resume paused jobs"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-success hover:bg-accent disabled:opacity-50 transition-colors"
+          >
+            <Play className="h-3.5 w-3.5" /> Resume
+          </button>
+          <button
+            onClick={() => { if (confirm('Retry all failed jobs?')) retryQ.mutate(); }}
+            disabled={retryQ.isPending}
+            title="Retry failed"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-info hover:bg-accent disabled:opacity-50 transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Retry Failed
           </button>
           <button
             onClick={() => setShowModal(true)}
