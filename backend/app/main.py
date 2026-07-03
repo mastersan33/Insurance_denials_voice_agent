@@ -9,6 +9,7 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
@@ -19,6 +20,8 @@ from backend.app.db.redis import close_redis
 from backend.app.db.session import init_db
 from backend.app.middleware.logging_middleware import RequestLoggingMiddleware
 from backend.app.middleware.request_id import RequestIDMiddleware
+from backend.app.middleware.security_headers import SecurityHeadersMiddleware
+from backend.app.observability.metrics import PrometheusMiddleware, router as metrics_router
 from backend.app.websocket.media_stream import router as ws_router
 from backend.app.websocket.dashboard_ws import router as dashboard_ws_router
 
@@ -98,9 +101,13 @@ app.add_middleware(
     allow_methods=_ALLOWED_METHODS,
     allow_headers=_ALLOWED_HEADERS,
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # compress responses > 1KB
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(PrometheusMiddleware)
 
 app.include_router(api_router)
+app.include_router(metrics_router)
 app.include_router(ws_router, prefix="/api/v1/twilio")
 app.include_router(dashboard_ws_router)

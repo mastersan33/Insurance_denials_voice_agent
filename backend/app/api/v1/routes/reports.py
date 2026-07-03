@@ -62,7 +62,7 @@ async def export_billing_cases(
         }
         for c in cases
     ]
-    await audit("report.export", actor=user, resource_type="BillingCase", detail=f"fmt={fmt} count={len(rows)}")
+    audit("report.export", actor=user, resource_type="BillingCase", detail=f"fmt={fmt} count={len(rows)}")
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if fmt == "json":
         return Response(content=json.dumps(rows), media_type="application/json",
@@ -91,7 +91,7 @@ async def export_calls(
         }
         for j in jobs
     ]
-    await audit("report.export", actor=user, resource_type="CallJob", detail=f"fmt={fmt} count={len(rows)}")
+    audit("report.export", actor=user, resource_type="CallJob", detail=f"fmt={fmt} count={len(rows)}")
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if fmt == "json":
         return Response(content=json.dumps(rows), media_type="application/json",
@@ -122,7 +122,7 @@ async def export_transcripts(
         }
         for t in turns
     ]
-    await audit("report.export", actor=user, resource_type="Transcript", detail=f"fmt={fmt} count={len(rows)}")
+    audit("report.export", actor=user, resource_type="Transcript", detail=f"fmt={fmt} count={len(rows)}")
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     if fmt == "json":
         return Response(content=json.dumps(rows), media_type="application/json",

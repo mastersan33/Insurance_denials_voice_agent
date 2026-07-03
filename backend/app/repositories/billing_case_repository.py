@@ -5,6 +5,11 @@ from backend.app.models.billing_case import BillingCase
 from backend.app.repositories.base import BaseRepository
 
 
+def _escape_like(value: str) -> str:
+    """Escape LIKE wildcards to prevent injection via search queries."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 class BillingCaseRepository(BaseRepository[BillingCase]):
     def __init__(self, db: AsyncSession):
         super().__init__(db, BillingCase)
@@ -39,7 +44,9 @@ class BillingCaseRepository(BaseRepository[BillingCase]):
         count_stmt = select(func.count()).select_from(BillingCase)
 
         if q:
-            like = f"%{q}%"
+            # Escape LIKE wildcards before wrapping — prevents wildcard injection
+            safe_q = _escape_like(q.strip())
+            like = f"%{safe_q}%"
             filter_clause = or_(
                 BillingCase.patient_name.ilike(like),
                 BillingCase.claim_number.ilike(like),

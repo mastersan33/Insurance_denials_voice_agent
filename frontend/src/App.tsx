@@ -1,26 +1,88 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import Dashboard from './pages/Dashboard';
+import { useAuthStore } from './store/authStore';
+import { useThemeStore } from './store/themeStore';
+
+// ── Eagerly loaded (on the critical auth path) ─────────────────────────────
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Profile from './pages/Profile';
-import CallQueue from './pages/CallQueue';
-import LiveCalls from './pages/LiveCalls';
-import CallDetails from './pages/CallDetails';
-import TranscriptViewer from './pages/TranscriptViewer';
-import Settings from './pages/Settings';
-import BillingCases from './pages/BillingCases';
-import BillingCaseDetail from './pages/BillingCaseDetail';
-import NewBillingCase from './pages/NewBillingCase';
-import Analytics from './pages/Analytics';
-import Reports from './pages/Reports';
-import SystemHealth from './pages/SystemHealth';
-import AuditLog from './pages/AuditLog';
-import { useAuthStore } from './store/authStore';
-import { useThemeStore } from './store/themeStore';
+
+// ── Lazy loaded (split into separate chunks) ───────────────────────────────
+const Dashboard        = lazy(() => import('./pages/Dashboard'));
+const BillingCases     = lazy(() => import('./pages/BillingCases'));
+const NewBillingCase   = lazy(() => import('./pages/NewBillingCase'));
+const BillingCaseDetail = lazy(() => import('./pages/BillingCaseDetail'));
+const CallQueue        = lazy(() => import('./pages/CallQueue'));
+const LiveCalls        = lazy(() => import('./pages/LiveCalls'));
+const CallDetails      = lazy(() => import('./pages/CallDetails'));
+const TranscriptViewer = lazy(() => import('./pages/TranscriptViewer'));
+const Analytics        = lazy(() => import('./pages/Analytics'));
+const Reports          = lazy(() => import('./pages/Reports'));
+const SystemHealth     = lazy(() => import('./pages/SystemHealth'));
+const AuditLog         = lazy(() => import('./pages/AuditLog'));
+const Settings         = lazy(() => import('./pages/Settings'));
+const Profile          = lazy(() => import('./pages/Profile'));
+
+// ── Minimal page-level loading fallback ──────────────────────────────────
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
+function App() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { theme, setTheme } = useThemeStore();
+
+  // Apply theme on mount
+  useEffect(() => {
+    setTheme(theme);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/billing-cases" element={<BillingCases />} />
+          <Route path="/billing-cases/new" element={<NewBillingCase />} />
+          <Route path="/billing-cases/:id" element={<BillingCaseDetail />} />
+          <Route path="/call-queue" element={<CallQueue />} />
+          <Route path="/live-calls" element={<LiveCalls />} />
+          <Route path="/calls/:id" element={<CallDetails />} />
+          <Route path="/transcripts/:id" element={<TranscriptViewer />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/system-health" element={<SystemHealth />} />
+          <Route path="/audit-log" element={<AuditLog />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
+export default App;
+
 
 function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);

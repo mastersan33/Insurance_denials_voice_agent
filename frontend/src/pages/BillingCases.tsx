@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Plus, Search, Upload, Trash2, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
@@ -24,6 +24,44 @@ function PriorityBadge({ priority }: { priority: string }) {
     </span>
   );
 }
+
+interface CaseRowProps {
+  c: import('../types/billingCase').BillingCase;
+  onNavigate: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
+  deleteIsPending: boolean;
+}
+
+const CaseRow = memo(function CaseRow({ c, onNavigate, onDelete, deleteIsPending }: CaseRowProps) {
+  return (
+    <tr
+      onClick={() => onNavigate(c.id)}
+      className="hover:bg-accent/50 cursor-pointer transition-colors"
+    >
+      <td className="px-4 py-3 font-medium text-foreground">{c.patient_name}</td>
+      <td className="px-4 py-3 text-muted-foreground truncate max-w-[140px]">{c.payer_name}</td>
+      <td className="px-4 py-3 font-mono text-xs text-foreground">{c.claim_number}</td>
+      <td className="px-4 py-3 text-foreground">
+        {c.amount_billed != null ? `$${c.amount_billed.toLocaleString()}` : '—'}
+      </td>
+      <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
+      <td className="px-4 py-3"><StatusBadge status={c.status} size="sm" /></td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">
+        {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : '—'}
+      </td>
+      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={() => onDelete(c.id, c.patient_name)}
+          disabled={deleteIsPending}
+          className="rounded p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          title="Delete"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </td>
+    </tr>
+  );
+});
 
 export default function BillingCases() {
   const navigate = useNavigate();
@@ -204,34 +242,14 @@ export default function BillingCases() {
                 </tr>
               )
               : items.map((c) => (
-                <tr
+                <CaseRow
                   key={c.id}
-                  onClick={() => navigate(`/billing-cases/${c.id}`)}
-                  className="hover:bg-accent/50 cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-foreground">{c.patient_name}</td>
-                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[140px]">{c.payer_name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-foreground">{c.claim_number}</td>
-                  <td className="px-4 py-3 text-foreground">
-                    {c.amount_billed != null ? `$${c.amount_billed.toLocaleString()}` : '—'}
-                  </td>
-                  <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
-                  <td className="px-4 py-3"><StatusBadge status={c.status} size="sm" /></td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {c.created_at ? formatDistanceToNow(new Date(c.created_at), { addSuffix: true }) : '—'}
-                  </td>
-                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleDelete(c.id, c.patient_name)}
-                      disabled={deleteMutation.isPending}
-                      className="rounded p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                  c={c}
+                  onNavigate={(id) => navigate(`/billing-cases/${id}`)}
+                  onDelete={handleDelete}
+                  deleteIsPending={deleteMutation.isPending}
+                />
+              ))
           </tbody>
         </table>
       </div>

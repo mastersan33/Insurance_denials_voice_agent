@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
+from backend.app.db.cache import cache
 from backend.app.db.session import get_db
 from backend.app.schemas.call_job import CallJobCreate, CallJobResponse, CallJobUpdate
 from backend.app.schemas.call_session import CallSessionResponse
@@ -91,7 +92,7 @@ async def trigger_call(
     )
     await session_service.update_status(session.id, "initiated", twilio_call_sid=call_sid)
     await job_service.update_job(job_id, CallJobUpdate(status="in_progress"))
-
+    await cache.invalidate(cache.dashboard_key())
     return CallSessionResponse.model_validate(session)
 
 

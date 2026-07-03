@@ -92,7 +92,7 @@ export function useActiveCalls() {
   return useQuery({
     queryKey: ['active-calls'],
     queryFn: () => callsApi.getActive().then((r) => r.data),
-    refetchInterval: 5_000,
+    refetchInterval: 10_000,  // Reduced from 5s — WS push handles sub-10s updates
   });
 }
 

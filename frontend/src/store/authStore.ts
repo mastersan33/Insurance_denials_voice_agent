@@ -13,7 +13,6 @@ export interface User {
 
 interface AuthState {
   token: string | null;
-  refreshToken: string | null;
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -34,48 +33,40 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       token: null,
-      refreshToken: null,
       user: null,
       isAuthenticated: false,
 
       login: async (email: string, password: string) => {
         const { data } = await api.post('/api/v1/auth/login', { email, password });
+        // refresh_token is now set as an HttpOnly cookie by the server — not stored here
         set({
           token: data.access_token,
-          refreshToken: data.refresh_token,
           user: data.user,
           isAuthenticated: true,
         });
       },
 
       logout: async () => {
-        const { refreshToken } = get();
         try {
-          if (refreshToken) {
-            await api.post('/api/v1/auth/logout', { refresh_token: refreshToken });
-          }
+          await api.post('/api/v1/auth/logout', {});
         } catch {
           // best-effort
         }
-        set({ token: null, refreshToken: null, user: null, isAuthenticated: false });
+        set({ token: null, user: null, isAuthenticated: false });
       },
 
       refreshAccessToken: async () => {
-        const { refreshToken } = get();
-        if (!refreshToken) return false;
         try {
-          const { data } = await api.post('/api/v1/auth/refresh', {
-            refresh_token: refreshToken,
-          });
+          // Cookie is sent automatically (withCredentials: true)
+          const { data } = await api.post('/api/v1/auth/refresh', {});
           set({
             token: data.access_token,
-            refreshToken: data.refresh_token,
             user: data.user,
             isAuthenticated: true,
           });
           return true;
         } catch {
-          set({ token: null, refreshToken: null, user: null, isAuthenticated: false });
+          set({ token: null, user: null, isAuthenticated: false });
           return false;
         }
       },
@@ -91,6 +82,6 @@ export const useAuthStore = create<AuthState>()(
         return (ROLE_LEVEL[user.role] ?? -1) >= (ROLE_LEVEL[minimum] ?? 0);
       },
     }),
-    { name: 'auth-storage', partialize: (s) => ({ token: s.token, refreshToken: s.refreshToken, user: s.user, isAuthenticated: s.isAuthenticated }) }
+    { name: 'auth-storage', partialize: (s) => ({ token: s.token, user: s.user, isAuthenticated: s.isAuthenticated }) }
   )
 );

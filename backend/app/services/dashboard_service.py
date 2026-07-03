@@ -1,6 +1,8 @@
+import json
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.config.settings import settings
+from backend.app.db.cache import DASHBOARD_STATS_TTL, cache
 from backend.app.repositories.billing_case_repository import BillingCaseRepository
 from backend.app.repositories.call_job_repository import CallJobRepository
 from backend.app.repositories.call_session_repository import CallSessionRepository
@@ -24,6 +26,12 @@ class DashboardService:
         self.ticket_repo = TicketRepository(db)
 
     async def get_stats(self) -> DashboardStats:
+        # ── Cache read ────────────────────────────────────────────────────────
+        cached = await cache.get_json(cache.dashboard_key())
+        if cached is not None:
+            return DashboardStats(**cached)
+
+        # ── Compute ───────────────────────────────────────────────────────────
         # Headline counts
         total_calls = await self.call_job_repo.count()
         active_calls = await self.call_job_repo.count_by_status("in_progress")
@@ -107,6 +115,14 @@ class DashboardService:
             recent_activity=recent_activity,
             health=health,
         )
+
+        # ── Cache write ───────────────────────────────────────────────────────
+        await cache.set_json(
+            cache.dashboard_key(),
+            json.loads(stats.model_dump_json()),
+            ttl=DASHBOARD_STATS_TTL,
+        )
+        return stats
 
     async def _check_redis(self) -> bool:
         try:

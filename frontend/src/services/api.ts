@@ -7,9 +7,10 @@ export const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30_000,
+  withCredentials: true,  // Send HttpOnly refresh_token cookie on all requests
 });
 
-// --- Request interceptor: inject latest token ---
+// --- Request interceptor: inject latest JWT access token ---
 api.interceptors.request.use((config) => {
   try {
     const stored = localStorage.getItem('auth-storage');
@@ -49,20 +50,16 @@ api.interceptors.response.use(
       _isRefreshing = true;
 
       try {
-        const stored = localStorage.getItem('auth-storage');
-        const refreshToken: string | undefined = stored
-          ? JSON.parse(stored)?.state?.refreshToken
-          : undefined;
+        // Cookie is sent automatically (withCredentials: true) — no body needed
+        const { data } = await axios.post(
+          `${BASE_URL}/api/v1/auth/refresh`,
+          {},
+          { withCredentials: true },
+        );
 
-        if (!refreshToken) throw new Error('no refresh token');
-
-        const { data } = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
-
-        // Update persisted store
+        // Update persisted store (access token only — refresh lives in cookie)
         const current = JSON.parse(localStorage.getItem('auth-storage') || '{}');
-        current.state = { ...current.state, token: data.access_token, refreshToken: data.refresh_token, user: data.user, isAuthenticated: true };
+        current.state = { ...current.state, token: data.access_token, user: data.user, isAuthenticated: true };
         localStorage.setItem('auth-storage', JSON.stringify(current));
 
         processQueue(null, data.access_token);

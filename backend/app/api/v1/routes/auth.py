@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser
@@ -10,7 +10,6 @@ from backend.app.schemas.user import (
     ForgotPasswordRequest,
     MessageResponse,
     PasswordChange,
-    RefreshTokenRequest,
     ResetPasswordRequest,
     TokenResponse,
     UserCreate,
@@ -19,6 +18,31 @@ from backend.app.schemas.user import (
     UserUpdateProfile,
 )
 from backend.app.services.auth_service import AuthService
+
+_REFRESH_COOKIE = "refresh_token"
+_COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 days
+
+
+def _set_refresh_cookie(response: Response, token: str) -> None:
+    """HttpOnly Secure SameSite=Strict refresh token cookie."""
+    response.set_cookie(
+        key=_REFRESH_COOKIE,
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=_COOKIE_MAX_AGE,
+        path="/api/v1/auth",
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(key=_REFRESH_COOKIE, path="/api/v1/auth")
+
+
+def _read_refresh_token(request: Request, body: dict) -> str:
+    """Read refresh token from HttpOnly cookie first, fall back to JSON body."""
+    return request.cookies.get(_REFRESH_COOKIE) or body.get("refresh_token", "")
 
 router = APIRouter()
 
@@ -55,35 +79,51 @@ async def register(data: UserCreate, db: Annotated[AsyncSession, Depends(get_db)
 async def login(
     data: UserLogin,
     request: Request,
+    response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
     _: Annotated[None, Depends(_check_login_rate_limit)],
 ):
     ip = request.client.host if request.client else None
-    return await AuthService(db).login(data.email, data.password, ip_address=ip)
+    result = await AuthService(db).login(data.email, data.password, ip_address=ip)
+    _set_refresh_cookie(response, result.refresh_token)
+    result.refresh_token = ""  # Don't expose in JSON body
+    return result
 
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
-    data: RefreshTokenRequest,
+    request: Request,
+    response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    return await AuthService(db).refresh(data.refresh_token)
+    raw = _read_refresh_token(request, {})
+    if not raw:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token.")
+    result = await AuthService(db).refresh(raw)
+    _set_refresh_cookie(response, result.refresh_token)
+    result.refresh_token = ""
+    return result
 
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(
-    data: RefreshTokenRequest,
+    request: Request,
+    response: Response,
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    return await AuthService(db).logout(user.id, data.refresh_token)
+    raw = _read_refresh_token(request, {})
+    _clear_refresh_cookie(response)
+    return await AuthService(db).logout(user.id, raw)
 
 
 @router.post("/logout-all", response_model=MessageResponse)
 async def logout_all(
+    response: Response,
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    _clear_refresh_cookie(response)
     return await AuthService(db).logout_all(user.id)
 
 
