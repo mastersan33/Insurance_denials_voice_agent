@@ -71,7 +71,29 @@ async def _check_login_rate_limit(request: Request) -> None:
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-async def register(data: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def register(
+    data: UserCreate,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    # Rate-limit registrations per IP to prevent account enumeration / abuse
+    client_ip = request.client.host if request.client else "unknown"
+    key = f"ratelimit:register:{client_ip}"
+    try:
+        redis = await get_redis()
+        attempts = await redis.incr(key)
+        if attempts == 1:
+            await redis.expire(key, 3600)  # 1 per hour window
+        if attempts > 5:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many registration attempts. Try again in 1 hour.",
+                headers={"Retry-After": "3600"},
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     return await AuthService(db).register(data)
 
 

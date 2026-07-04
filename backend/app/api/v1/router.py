@@ -9,10 +9,12 @@ from backend.app.api.v1.routes import (
     calls,
     dashboard,
     health,
+    human_handoff,
     reports,
     tickets,
     transcripts,
     twilio_webhooks,
+    users,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -25,6 +27,8 @@ api_router.include_router(call_jobs.router, prefix="/call-jobs", tags=["Call Job
 api_router.include_router(calls.router, prefix="/calls", tags=["Calls"])
 api_router.include_router(transcripts.router, prefix="/transcripts", tags=["Transcripts"])
 api_router.include_router(tickets.router, prefix="/tickets", tags=["Tickets"])
+api_router.include_router(human_handoff.router, prefix="/human-handoff", tags=["Human Handoff"])
+api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(twilio_webhooks.router, prefix="/twilio", tags=["Twilio Webhooks"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 api_router.include_router(audit.router, prefix="/audit", tags=["Audit"])

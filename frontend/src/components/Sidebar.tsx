@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, PhoneCall, Radio, FileText, Settings,
   Ticket, Users, BarChart2, PhoneForwarded, Brain, ChevronLeft, ChevronRight,
-  ClipboardList, Download, Activity, ShieldCheck,
+  Download, Activity, ShieldCheck,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useState } from 'react';
@@ -48,10 +48,11 @@ const navGroups: NavGroup[] = [
   {
     title: 'System',
     items: [
+      { path: '/users', label: 'Users', icon: Users, minRole: 'supervisor' as const },
       { path: '/system-health', label: 'System Health', icon: Activity },
       { path: '/audit-log', label: 'Audit Log', icon: ShieldCheck, minRole: 'supervisor' as const },
       { path: '/settings', label: 'Settings', icon: Settings },
-      { path: '/profile', label: 'Profile', icon: Users },
+      { path: '/profile', label: 'Profile', icon: Brain },
     ],
   },
 ];

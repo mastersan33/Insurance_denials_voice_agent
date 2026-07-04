@@ -138,6 +138,14 @@ export default function CallQueue() {
             <Play className="h-3.5 w-3.5" /> Resume
           </button>
           <button
+            onClick={() => { if (confirm('Cancel ALL pending jobs? This cannot be undone.')) cancelAllQ.mutate(); }}
+            disabled={cancelAllQ.isPending}
+            title="Cancel all pending"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-destructive hover:bg-accent disabled:opacity-50 transition-colors"
+          >
+            <Ban className="h-3.5 w-3.5" /> Cancel All
+          </button>
+          <button
             onClick={() => { if (confirm('Retry all failed jobs?')) retryQ.mutate(); }}
             disabled={retryQ.isPending}
             title="Retry failed"

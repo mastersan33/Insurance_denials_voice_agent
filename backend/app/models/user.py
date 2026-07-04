@@ -20,7 +20,8 @@ class User(Base, UUIDMixin, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    call_jobs = relationship("CallJob", back_populates="created_by_user", lazy="selectin")
+    # lazy="raise" prevents accidental N+1 — explicit joinedload() required
+    call_jobs = relationship("CallJob", back_populates="created_by_user", lazy="raise")
     refresh_tokens = relationship(
         "RefreshToken", back_populates="user", lazy="raise", cascade="all, delete-orphan"
     )

@@ -26,7 +26,11 @@ async def test_create_billing_case(client: AsyncClient, auth_headers: dict):
 async def test_list_billing_cases(client: AsyncClient, auth_headers: dict):
     response = await client.get("/api/v1/billing-cases", headers=auth_headers)
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    data = response.json()
+    # API returns PaginatedResponse: { items: [...], total: int, skip: int, limit: int }
+    assert "items" in data
+    assert "total" in data
+    assert isinstance(data["items"], list)
 
 
 @pytest.mark.asyncio

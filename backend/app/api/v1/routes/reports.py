@@ -1,4 +1,11 @@
-"""CSV/JSON report export endpoints."""
+"""CSV/JSON report export endpoints.
+
+All export endpoints require `supervisor` or higher role — they stream raw
+patient / financial data and must not be accessible to operators or viewers.
+
+Row cap: 10 000 rows per export to prevent memory exhaustion.  If more rows
+are needed, consumers must paginate via the `skip` / `limit` parameters.
+"""
 import csv
 import io
 import json
@@ -10,13 +17,15 @@ from fastapi.responses import Response, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.core.dependencies import CurrentUser
+from backend.app.core.dependencies import CurrentUser, require_role
 from backend.app.db.session import get_db
 from backend.app.models.billing_case import BillingCase
 from backend.app.models.call_job import CallJob
 from backend.app.models.call_session import CallSession
 from backend.app.models.transcript import Transcript
 from backend.app.services.audit_service import audit
+
+_MAX_EXPORT_ROWS = 10_000
 
 router = APIRouter()
 
@@ -43,9 +52,14 @@ def _csv_response(rows: list[dict], filename: str) -> StreamingResponse:
 async def export_billing_cases(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[None, require_role("supervisor")] = None,
     fmt: str = Query("csv", regex="^(csv|json)$"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(_MAX_EXPORT_ROWS, ge=1, le=_MAX_EXPORT_ROWS),
 ):
-    result = await db.execute(select(BillingCase).order_by(BillingCase.created_at.desc()))
+    result = await db.execute(
+        select(BillingCase).order_by(BillingCase.created_at.desc()).offset(skip).limit(limit)
+    )
     cases = result.scalars().all()
     rows = [
         {
@@ -74,9 +88,14 @@ async def export_billing_cases(
 async def export_calls(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[None, require_role("supervisor")] = None,
     fmt: str = Query("csv", regex="^(csv|json)$"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(_MAX_EXPORT_ROWS, ge=1, le=_MAX_EXPORT_ROWS),
 ):
-    result = await db.execute(select(CallJob).order_by(CallJob.created_at.desc()))
+    result = await db.execute(
+        select(CallJob).order_by(CallJob.created_at.desc()).offset(skip).limit(limit)
+    )
     jobs = result.scalars().all()
     rows = [
         {
@@ -103,10 +122,18 @@ async def export_calls(
 async def export_transcripts(
     user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[None, require_role("supervisor")] = None,
     session_id: str | None = None,
     fmt: str = Query("csv", regex="^(csv|json)$"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(_MAX_EXPORT_ROWS, ge=1, le=_MAX_EXPORT_ROWS),
 ):
-    stmt = select(Transcript).order_by(Transcript.call_session_id, Transcript.sequence_number)
+    stmt = (
+        select(Transcript)
+        .order_by(Transcript.call_session_id, Transcript.sequence_number)
+        .offset(skip)
+        .limit(limit)
+    )
     if session_id:
         stmt = stmt.where(Transcript.call_session_id == session_id)
     result = await db.execute(stmt)

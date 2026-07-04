@@ -33,7 +33,7 @@ export const transcriptsApi = {
 };
 
 export const ticketsApi = {
-  list: (params?: { status?: string }) => api.get('/api/v1/tickets', { params }),
+  list: (params?: { status?: string; skip?: number; limit?: number }) => api.get('/api/v1/tickets', { params }),
   create: (data: { title: string; description?: string; priority?: string }) =>
     api.post('/api/v1/tickets', data),
   update: (id: string, data: { status?: string; resolution?: string }) =>
@@ -83,5 +83,21 @@ export const auditApi = {
 export const healthApi = {
   ready: () => api.get('/health/ready'),
   system: () => api.get('/health/system'),
+};
+
+export const humanHandoffApi = {
+  list: (params?: { status?: string; skip?: number; limit?: number }) =>
+    api.get('/api/v1/human-handoff', { params }),
+  update: (id: string, data: { status?: string; resolution_notes?: string; assigned_to?: string }) =>
+    api.patch(`/api/v1/human-handoff/${id}`, data),
+};
+
+export const usersApi = {
+  list: (params?: { skip?: number; limit?: number }) =>
+    api.get('/api/v1/users', { params }),
+  update: (id: string, data: { role: string; is_active?: boolean }) =>
+    api.patch(`/api/v1/users/${id}`, data),
+  deactivate: (id: string) =>
+    api.delete(`/api/v1/users/${id}`),
 };
 

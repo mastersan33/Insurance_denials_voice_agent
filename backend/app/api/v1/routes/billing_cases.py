@@ -2,7 +2,7 @@ import csv
 import io
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.dependencies import CurrentUser, require_role
@@ -103,8 +103,25 @@ async def bulk_import_billing_cases(
     Required columns: patient_name, payer_name, claim_number
     Optional: patient_dob, subscriber_id, payer_phone, denial_code, denial_reason,
               amount_billed, provider_name, provider_npi, priority, notes
+    Max file size: 5 MB. Only text/csv and text/plain content types accepted.
     """
-    content = await file.read()
+    # --- Security: validate content type and file size -----------------------
+    _ALLOWED_CONTENT_TYPES = {"text/csv", "text/plain", "application/csv"}
+    _MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+
+    if file.content_type and file.content_type.lower().split(";")[0].strip() not in _ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Only CSV files are accepted (text/csv)",
+        )
+
+    content = await file.read(_MAX_UPLOAD_BYTES + 1)
+    if len(content) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File exceeds the 5 MB upload limit",
+        )
+    # -------------------------------------------------------------------------
     text = content.decode("utf-8-sig")
     reader = csv.DictReader(io.StringIO(text))
     repo = BillingCaseRepository(db)

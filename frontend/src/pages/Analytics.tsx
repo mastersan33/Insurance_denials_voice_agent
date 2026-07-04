@@ -167,7 +167,7 @@ export default function Analytics() {
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie data={outcomes} dataKey="count" nameKey="outcome" cx="50%" cy="50%" outerRadius={70} label={({ outcome, percentage }) => `${outcome} ${percentage}%`} labelLine={false}>
+                <Pie data={outcomes} dataKey="count" nameKey="outcome" cx="50%" cy="50%" outerRadius={70} label={(p) => { const d = p as { outcome?: string; percentage?: number }; return `${d.outcome ?? ''} ${d.percentage ?? 0}%`; }} labelLine={false}>
                   {outcomes.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ fontSize: 12 }} />

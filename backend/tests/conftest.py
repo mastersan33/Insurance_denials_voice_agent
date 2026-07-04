@@ -80,6 +80,26 @@ async def client(_rollback_after_test: AsyncSession):
 
 
 @pytest.fixture
+async def auth_headers(client: AsyncClient) -> dict:
+    """Register + login a test admin user and return Authorization headers."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "testadmin@example.com",
+            "password": "TestPass123!",
+            "full_name": "Test Admin",
+            "role": "admin",
+        },
+    )
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "testadmin@example.com", "password": "TestPass123!"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
 async def auth_headers(client: AsyncClient):
     await client.post(
         "/api/v1/auth/register",

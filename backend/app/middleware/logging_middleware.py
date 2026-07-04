@@ -22,5 +22,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 path=request.url.path,
                 status_code=response.status_code,
                 duration_ms=round(duration_ms, 2),
+                request_id=getattr(request.state, "request_id", None),
+                client_ip=request.client.host if request.client else None,
             )
         return response

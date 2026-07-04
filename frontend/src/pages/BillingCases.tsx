@@ -250,6 +250,7 @@ export default function BillingCases() {
                   deleteIsPending={deleteMutation.isPending}
                 />
               ))
+            }
           </tbody>
         </table>
       </div>

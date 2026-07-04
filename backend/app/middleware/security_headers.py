@@ -28,6 +28,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Clickjacking protection
         response.headers["X-Frame-Options"] = "DENY"
 
+        # Deny cross-domain Flash/PDF/Silverlight requests
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+
         # Legacy XSS filter
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
